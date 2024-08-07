@@ -3,18 +3,45 @@ import {
   DeleteOutlined,
   ShoppingCartOutlined,
 } from '@ant-design/icons';
-import { Flex } from 'antd';
+import { Flex, message } from 'antd';
 import Big from 'big.js';
 import classNames from 'classnames';
-import { useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
+import { TotalAmountContext } from '../context';
 import './shopping-car.less';
 
-export const ShoppingCar = (props) => {
-  const { goHome, skuList, updateCar, jiesuan } = props;
+export const ShoppingCar = (props, ref) => {
+  const { goHome, skuList, updateCar, settle } = props;
 
   const [selectSkus, setSelectSkus] = useState(skuList.map((item) => item.id));
+  const {
+    totalAmount,
+    orderTotalAmount,
+    LDtotalAmount,
+    orderQuantity,
+    updateTotalAmount,
+    updateOrderTotalAmount,
+    updateLDTotalAmount,
+    updateCPDTotalAmount,
+    updateOrderQuantity,
+  } = useContext(TotalAmountContext);
 
-  console.log(skuList);
+  useEffect(() => {
+    const totalAmount = () => {
+      const filterList = skuList.filter((item) => selectSkus.includes(item.id));
+      const amount = filterList.reduce((curPrice, curSku) => {
+        return Big(curPrice)
+          .add(
+            Big(curSku.size.inner_price).times(curSku.add_quantity).toNumber(),
+          )
+          .toNumber()
+          .toFixed(2);
+      }, 0);
+      return amount;
+    };
+    updateTotalAmount(totalAmount());
+  }, [selectSkus, skuList]);
+
   const nonePage = (
     <Flex className="none-page" vertical justify="center" align="center">
       <ShoppingCartOutlined className="icon" />
@@ -32,7 +59,6 @@ export const ShoppingCar = (props) => {
   );
 
   const minus = (item, index) => {
-    console.log('minus');
     const newItem = {
       ...item,
       add_quantity: item.add_quantity - 1,
@@ -43,15 +69,22 @@ export const ShoppingCar = (props) => {
   };
 
   const add = (item, index) => {
-    console.log('item');
     const newItem = {
       ...item,
       add_quantity: item.add_quantity + 1,
     };
-    console.log(newItem);
     const skuListCopy = Object.assign(skuList);
     skuListCopy.splice(index, 1, newItem);
     updateCar(skuListCopy);
+    const filterList = skuList.filter((item) => selectSkus.includes(item.id));
+    const amount = filterList.reduce((curPrice, curSku) => {
+      return Big(curPrice)
+        .add(Big(curSku.size.inner_price).times(curSku.add_quantity).toNumber())
+        .toNumber()
+        .toFixed(2);
+    }, 0);
+
+    updateTotalAmount(amount);
   };
 
   const remove = (id, index) => {
@@ -62,10 +95,17 @@ export const ShoppingCar = (props) => {
       const selectSkusCopy = selectSkus.filter((item) => item !== id);
       setSelectSkus(selectSkusCopy);
     }
+    const filterList = skuList.filter((item) => selectSkus.includes(item.id));
+    const amount = filterList.reduce((curPrice, curSku) => {
+      return Big(curPrice)
+        .add(Big(curSku.size.inner_price).times(curSku.add_quantity).toNumber())
+        .toNumber()
+        .toFixed(2);
+    }, 0);
+    updateTotalAmount(amount);
   };
 
   const checkboxClick = (curSkuId: string) => {
-    console.log(selectSkus);
     if (selectSkus?.includes(curSkuId)) {
       const selectSkusCopy = selectSkus.slice().filter((id) => id !== curSkuId);
 
@@ -85,15 +125,50 @@ export const ShoppingCar = (props) => {
     }
   };
 
-  const totalAmount = () => {
-    const filterList = skuList.filter((item) => selectSkus.includes(item.id));
-    const amount = filterList.reduce((curPrice, curSku) => {
+  const handleSettele = () => {
+    const skuListCopy = Object.assign(skuList);
+    const filterList = skuListCopy.filter((item) =>
+      selectSkus.includes(item.id),
+    );
+    const orderSkusTotalAmount = filterList.reduce((curPrice, curSku) => {
       return Big(curPrice)
         .add(Big(curSku.size.inner_price).times(curSku.add_quantity).toNumber())
         .toNumber()
         .toFixed(2);
     }, 0);
-    return amount;
+
+    const LDSkusAmount = filterList
+      .filter((item) => item.type === 'LD')
+      .reduce((curPrice, curSku) => {
+        return Big(curPrice)
+          .add(
+            Big(curSku.size.inner_price).times(curSku.add_quantity).toNumber(),
+          )
+          .toNumber()
+          .toFixed(2);
+      }, 0);
+
+    const CPDSkusAmount = filterList
+      .filter((item) => item.type === 'CPD')
+      .reduce((curPrice, curSku) => {
+        return Big(curPrice)
+          .add(
+            Big(curSku.size.inner_price).times(curSku.add_quantity).toNumber(),
+          )
+          .toNumber()
+          .toFixed(2);
+      }, 0);
+    if (orderQuantity === '10') {
+      message.warning('订单最大数为10');
+    } else {
+      updateOrderQuantity(Big(orderQuantity).add(1).valueOf());
+      updateOrderTotalAmount(
+        Big(orderTotalAmount).minus(orderSkusTotalAmount).valueOf(),
+      );
+      updateLDTotalAmount(Big(LDtotalAmount).minus(LDSkusAmount).valueOf());
+      updateCPDTotalAmount(CPDSkusAmount);
+      settle();
+    }
   };
 
   return (
@@ -210,10 +285,10 @@ export const ShoppingCar = (props) => {
 
             <Flex className="right-part">
               <div className="amount">
-                <div className="total">{`总计：¥${totalAmount()}`}</div>
+                <div className="total">{`总计：¥${totalAmount}`}</div>
                 <div className="tip">不包含运费</div>
               </div>
-              <div className="settle-btn" onClick={jiesuan}>
+              <div className="settle-btn" onClick={handleSettele}>
                 去结算
               </div>
             </Flex>

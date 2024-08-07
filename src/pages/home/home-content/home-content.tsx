@@ -1,11 +1,14 @@
 import { Flex, Modal, Spin, message } from 'antd';
+import Big from 'big.js';
 import classNames from 'classnames';
-import { useState } from 'react';
+import { useContext, useState } from 'react';
+import { TotalAmountContext } from '../context';
 import './home-content.less';
 export const HomeContent = (props) => {
   const { selectSku, addCar, skuList } = props;
   const [open, setOpen] = useState(false);
 
+  const { totalAmount, updateTotalAmount } = useContext(TotalAmountContext);
   const [size, setSize] = useState(selectSku?.stocks?.[0]);
 
   const [addQuantity, setAddQuantity] = useState(1);
@@ -22,26 +25,33 @@ export const HomeContent = (props) => {
   };
 
   const minus = () => {
-    if (size.quantity === 0 || addQuantity === 1) return;
+    if (size?.quantity === 0 || addQuantity === 1) return;
     setAddQuantity(addQuantity - 1);
   };
 
   const add = () => {
-    if (addQuantity === size.quantity || size.quantity === 0) return;
+    if (addQuantity === size?.quantity || size?.quantity === 0) return;
     setAddQuantity(addQuantity + 1);
   };
 
   const handleAddCar = () => {
-    if (size.quantity === 0) {
+    if (size?.quantity === 0) {
       message.warning('商品已售罄');
       return;
     }
     const addSku = {
-      id: selectSku.id,
-      name: selectSku.name,
+      id: selectSku?.id,
+      name: selectSku?.name,
       add_quantity: addQuantity,
       size: size,
+      type: selectSku?.type,
     };
+    const latestTotalAmount = Big(totalAmount)
+      .add(Big(addSku.add_quantity).times(addSku.size.inner_price))
+      .toNumber()
+      .toFixed(2);
+    updateTotalAmount(latestTotalAmount);
+
     setLoading(true);
     setTimeout(() => {
       addCar(addSku);
@@ -58,7 +68,7 @@ export const HomeContent = (props) => {
       justify="center"
       align="center"
     >
-      <div className="header-cump">{`首页  >  搜索结果  >  ${selectSku.name}`}</div>
+      <div className="header-cump">{`首页  >  搜索结果  >  ${selectSku?.name}`}</div>
       <Flex className="tag" justify="space-between" align="center">
         <Flex>
           <div className="tag-item">综合</div>
@@ -71,18 +81,18 @@ export const HomeContent = (props) => {
         <div className="sku-card" onClick={selectSkuCard}>
           <div className="sku-img">照片</div>
           <div className="name">
-            {selectSku.name.length > 16
-              ? `${selectSku.name.slice(0, 16)}...`
-              : selectSku.name}
+            {selectSku?.name.length > 16
+              ? `${selectSku?.name.slice(0, 16)}...`
+              : selectSku?.name}
           </div>
           <div className="name inner">
             内购价：
             <span
               style={{ fontSize: '18px' }}
-            >{`¥${selectSku.stocks[0].inner_price}`}</span>
+            >{`¥${selectSku?.stocks[0].inner_price}`}</span>
           </div>
           <div className="name market">
-            市场价：<span>{`¥${selectSku.stocks[0].market_price}`}</span>
+            市场价：<span>{`¥${selectSku?.stocks[0].market_price}`}</span>
           </div>
           <div className="sku-type">{'彩妆'}</div>
         </div>
@@ -99,23 +109,23 @@ export const HomeContent = (props) => {
                 justify="space-between"
               >
                 <div className="sku-type">{'彩妆'}</div>
-                <div className="sku-name">{selectSku.name}</div>
-                <div className="sku-status">{`${'大于一年'}/${
-                  selectSku.broken ? '外包装破损' : '无破损'
+                <div className="sku-name">{selectSku?.name}</div>
+                <div className="sku-status">{`${size?.time}/${
+                  size?.broken
                 }`}</div>
                 <div className="sku-limit-buy-quantity">最低限购数：{'1'}</div>
                 <Flex className="sku-price" align="center">
-                  <div className="inner">内购价：¥{size.inner_price}</div>
-                  <div className="market">市场价：¥{size.market_price}</div>
+                  <div className="inner">内购价：¥{size?.inner_price}</div>
+                  <div className="market">市场价：¥{size?.market_price}</div>
                 </Flex>
                 <Flex className="sku-size-select" vertical align="start">
                   <div className="title">规格</div>
                   <Flex className="size-items">
-                    {selectSku.stocks.map((item) => {
+                    {selectSku?.stocks.map((item) => {
                       return (
                         <div
                           className={classNames('size-item', {
-                            selected: size.size === item.size,
+                            selected: size?.size === item.size,
                           })}
                           onClick={() => {
                             selectSize(item);
@@ -130,7 +140,7 @@ export const HomeContent = (props) => {
                 <Flex className="sku-add-count">
                   <div
                     className={classNames('quantity-btn', {
-                      disabled: size.quantity === 0 || addQuantity === 1,
+                      disabled: size?.quantity === 0 || addQuantity === 1,
                     })}
                     onClick={minus}
                   >
@@ -140,7 +150,7 @@ export const HomeContent = (props) => {
                   <div
                     className={classNames('quantity-btn', {
                       disabled:
-                        addQuantity === size.quantity || size.quantity === 0,
+                        addQuantity === size?.quantity || size?.quantity === 0,
                     })}
                     onClick={add}
                   >
@@ -148,14 +158,14 @@ export const HomeContent = (props) => {
                   </div>
                   <div
                     className={classNames('stock-quantity', {
-                      none: size.quantity === 0,
+                      none: size?.quantity === 0,
                     })}
                   >
-                    {size.quantity === 0
+                    {size?.quantity === 0
                       ? '已售罄'
-                      : size.quantity > 999
+                      : size?.quantity > 999
                       ? '库存999+'
-                      : `库存${size.quantity}`}
+                      : `库存${size?.quantity}`}
                   </div>
                 </Flex>
                 <div className="add-shopping-car-btn" onClick={handleAddCar}>

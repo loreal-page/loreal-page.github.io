@@ -8,19 +8,21 @@ import {
   footerStyle,
   headerStyle,
   layoutStyle,
-  limitItems,
   warningList,
 } from './constant';
 import { ContentMenu } from './content-menu/content-menu';
+import { TotalAmountContextProvider } from './context';
 import { HomeContent } from './home-content/home-content';
 import './index.less';
+import { Settle } from './settle/settle';
 import { ShoppingCar } from './shopping-car/shopping-car';
 import { UserMenu } from './user-menu/user-menu';
+import { QuotaHeader } from './quota-header/quota-header';
 
 // import bg from '../assets/before_begining.jpg';
 export default function HomePage(props) {
   const { logout } = props;
-  const { Header, Footer, Sider, Content } = Layout;
+  const { Header, Footer, Content } = Layout;
 
   const [homeTipOpen, setHomeTipOpen] = useState(true);
   const [countdown, setCountdown] = useState(1);
@@ -32,8 +34,9 @@ export default function HomePage(props) {
 
   const [skuList, setSkuList] = useState([]);
 
-  const [showJiesuanPage, setShowJiesuanPage] = useState(false);
+  const [showSettlePage, setShowSettlePage] = useState(false);
 
+  const [totalAmount, setTotalAmount] = useState(0);
   useEffect(() => {
     if (countdown > 0) {
       const intervalId = setInterval(() => {
@@ -75,9 +78,9 @@ export default function HomePage(props) {
   const handleSelectSku = (sku) => {
     setLoading(true);
     setTimeout(() => {
-      setShowShoppingCar(false)
+      setShowShoppingCar(false);
       setSelectSku(sku);
-      setShowJiesuanPage(false)
+      setShowSettlePage(false);
       setLoading(false);
     }, 1000);
   };
@@ -91,135 +94,134 @@ export default function HomePage(props) {
   };
 
   const addCar = (item) => {
+    console.log(item)
     const skuListCopy = skuList.slice();
     skuListCopy.push(item);
     setSkuList(skuListCopy);
   };
 
+  const getTotalAmount = (val: number) => {
+    setTotalAmount(val);
+  };
+
   return (
-    <Layout style={layoutStyle}>
-      <Flex
-        className="limit bg-[#fff7ea]  h-[42px]"
-        align="center"
-        justify="center"
-      >
-        {limitItems.map((item) => {
-          return (
-            <div className="w-[200px]">{`${item.title}：${item.amout}`}</div>
-          );
-        })}
-      </Flex>
-      <Header style={headerStyle}>
-        <Flex justify="space-between" className="w-[100%] h-[100%]">
-          <Flex
-            justify="flex-start"
-            align="center"
-            className="cursor-pointer"
-            // className="h-[100%]"
-            id="home-header"
-          >
-            <h1>
-              <img src={logo} alt="" className="w-[96px]" />
-            </h1>
-            <UserMenu logout={logout} />
+    <TotalAmountContextProvider>
+      <Layout style={layoutStyle}>
+        <QuotaHeader />
+        <Header style={headerStyle}>
+          <Flex justify="space-between" className="w-[100%] h-[100%]">
+            <Flex
+              justify="flex-start"
+              align="center"
+              className="cursor-pointer"
+              // className="h-[100%]"
+              id="home-header"
+            >
+              <h1>
+                <img src={logo} alt="" className="w-[96px]" />
+              </h1>
+              <UserMenu logout={logout} />
+            </Flex>
+            <Flex
+              align="center"
+              justify="end"
+              className="text-[#000] cursor-pointer"
+            >
+              <div className="p-[25px] text-[#c3ac83]">
+                <FireFilled className="mr-[10px]" />
+                热卖活动
+              </div>
+              <div className="p-[25px]">帮助中心</div>
+              <div className="p-[25px]">简体中文 ｜ English</div>
+            </Flex>
           </Flex>
-          <Flex
-            align="center"
-            justify="end"
-            className="text-[#000] cursor-pointer"
-          >
-            <div className="p-[25px] text-[#c3ac83]">
-              <FireFilled className="mr-[10px]" />
-              热卖活动
-            </div>
-            <div className="p-[25px]">帮助中心</div>
-            <div className="p-[25px]">简体中文 ｜ English</div>
-          </Flex>
-        </Flex>
-      </Header>
-      <Content style={contentStyle}>
-        <ContentMenu
-          enterShoppingCar={() => {
-            setLoading(true);
-            setTimeout(() => {
-              setShowShoppingCar(true);
-              setLoading(false);
-            }, 1000);
-          }}
-          selectSku={handleSelectSku}
-          skuList={skuList}
-        />
-        {loading ? (
-          <Spin
-            style={{
-              width: '960px',
-              height: 'inherit',
-              margin: '0 auto',
-              padding: '60px 0,',
-            }}
-            size="large"
-          />
-        ) : showShoppingCar ? (
-          <ShoppingCar
-            goHome={handleGoHome}
-            skuList={skuList}
-            updateCar={updateCar}
-            addCar={addCar}
-            jiesuan={() => {
+        </Header>
+        <Content style={contentStyle}>
+          <ContentMenu
+            enterShoppingCar={() => {
               setLoading(true);
+              setShowShoppingCar(false);
               setTimeout(() => {
-                setShowShoppingCar(false);
-                setShowJiesuanPage(true);
+                setShowShoppingCar(true);
+                setShowSettlePage(false);
                 setLoading(false);
               }, 1000);
             }}
-          />
-        ) : showJiesuanPage ? (
-          <div style={{ color: '#000', fontSize: '30px' }}>
-            结算操作点支付即可
-          </div>
-        ) : selectSku ? (
-          <HomeContent
+            selectSku={handleSelectSku}
             skuList={skuList}
-            selectSku={selectSku}
-            updateCar={updateCar}
-            addCar={addCar}
+            totalAmount={totalAmount}
           />
-        ) : (
-          'content'
-        )}
-      </Content>
-      <Footer style={footerStyle}></Footer>
+          {loading && (
+            <Spin
+              style={{
+                width: '960px',
+                height: 'inherit',
+                margin: '0 auto',
+                padding: '60px 0,',
+              }}
+              size="large"
+            />
+          )}
+          {showShoppingCar && (
+            <ShoppingCar
+              goHome={handleGoHome}
+              skuList={skuList}
+              updateCar={updateCar}
+              addCar={addCar}
+              settle={() => {
+                setLoading(true);
+                setTimeout(() => {
+                  setSkuList([])
+                  setShowShoppingCar(false);
+                  setShowSettlePage(true);
+                  setLoading(false);
+                }, 1000);
+              }}
+              getTotalAmount={getTotalAmount}
+            />
+          )}
+          {showSettlePage && <Settle />}
+          {!loading && !showShoppingCar && !showSettlePage && selectSku && (
+            <HomeContent
+              skuList={skuList}
+              selectSku={selectSku}
+              updateCar={updateCar}
+              addCar={addCar}
+            />
+          )}
+        </Content>
+        <Footer style={footerStyle}></Footer>
 
-      <Modal
-        className="home-tip-modal"
-        style={{ height: '80vh' }}
-        open={homeTipOpen}
-        title={<div className="modal-title">购买规则</div>}
-        centered
-        okButtonProps={{
-          className: classNames('confirm-btn', {
-            'confirm-btn-disabled': countdown > 0,
-            'confirm-btn-able ': countdown === 0,
-          }),
-          disabled: countdown > 0,
-        }}
-        cancelButtonProps={{ style: { display: 'none' } }}
-        onOk={() => setHomeTipOpen(false)}
-        closeIcon={null}
-        footer={modalFooterBtns}
-      >
-        <div className="home-modal-content">
-          <p style={{ marginTop: '40px' }}>欧莱雅员工2024/03员工内卖须知</p>
-          <br />
-          <br />
-          <ul className="content-tips">
-            {warningList.map((tip) => (
-              <li>{tip}</li>
-            ))}
-          </ul>
-        </div>
-      </Modal>
-    </Layout>
+        <Modal
+          className="home-tip-modal"
+          style={{ height: '80vh' }}
+          open={homeTipOpen}
+          title={<div className="modal-title">购买规则</div>}
+          centered
+          okButtonProps={{
+            className: classNames('confirm-btn', {
+              'confirm-btn-disabled': countdown > 0,
+              'confirm-btn-able ': countdown === 0,
+            }),
+            disabled: countdown > 0,
+          }}
+          cancelButtonProps={{ style: { display: 'none' } }}
+          onOk={() => setHomeTipOpen(false)}
+          closeIcon={null}
+          footer={modalFooterBtns}
+        >
+          <div className="home-modal-content">
+            <p style={{ marginTop: '40px' }}>欧莱雅员工2024/03员工内卖须知</p>
+            <br />
+            <br />
+            <ul className="content-tips">
+              {warningList.map((tip) => (
+                <li>{tip}</li>
+              ))}
+            </ul>
+          </div>
+        </Modal>
+      </Layout>
+    </TotalAmountContextProvider>
   );
 }

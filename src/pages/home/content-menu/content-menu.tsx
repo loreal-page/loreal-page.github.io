@@ -2,8 +2,9 @@ import { mockData } from '@/mock-data/data';
 import { ShoppingOutlined } from '@ant-design/icons';
 import { useDebounceFn } from 'ahooks';
 import { Flex, Menu, MenuProps, Popover, Select } from 'antd';
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import './content-menu.less';
+import { TotalAmountContext } from '../context';
 type MenuItem = Required<MenuProps>['items'][number];
 
 interface ContentMenuProps {
@@ -11,6 +12,8 @@ interface ContentMenuProps {
 }
 export const ContentMenu = (props) => {
   const { enterShoppingCar, selectSku, skuList } = props;
+  const { totalAmount } = useContext(TotalAmountContext);
+
   const [current, setCurrent] = useState('mail');
 
   const [options, setOptions] = useState([]);
@@ -34,7 +37,6 @@ export const ContentMenu = (props) => {
               }`,
             };
           });
-        console.log(options);
         resolve(options);
       }, 400); // 模拟网络延迟
     });
@@ -63,11 +65,11 @@ export const ContentMenu = (props) => {
       <div className="title">我的购物车</div>
       <div className="item mt-[20px]">
         <div>订单金额：</div>
-        <div>¥0</div>
+        <div>¥{totalAmount}</div>
       </div>
       <div className="item count">
         <div>商品数量：</div>
-        <div>0件</div>
+        <div>{skuList.length}件</div>
       </div>
       <div className="go-shopping-car-btn" onClick={enterShoppingCar}>
         前往购物车
@@ -76,7 +78,6 @@ export const ContentMenu = (props) => {
   );
 
   const handleSelectSku = (select) => {
-    console.log(select);
     const target = mockData.find((item) => select.includes(item.name));
     selectSku(target);
   };
